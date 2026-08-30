@@ -1,0 +1,2 @@
+# Encompass
+Organizational app
