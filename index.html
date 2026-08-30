@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#7c6aaaff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Anchor — gentle planning for busy minds</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚓</text></svg>">
+<link rel="manifest" id="manifest-link">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root {
+    --lav: #7c6aaa; --lav-dark: #5d4e8a; --lav-soft: #efeaf8;
+    --peach: #ffd9c0; --mint: #cfe8dd; --butter: #fff3cf;
+    --ink: #3a3450; --ink-soft: #6f6890;
+  }
+  * { -webkit-tap-highlight-color: transparent; }
+  html { scroll-behavior: smooth; }
+  body { background: linear-gradient(160deg,#f6f2fb 0%,#eef4f1 55%,#fdf3ea 100%); color: var(--ink);
+         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+         min-height: 100vh; overscroll-behavior-y: none; }
+  .card { background: rgba(255,255,255,.82); backdrop-filter: blur(8px);
+          border-radius: 1.25rem; box-shadow: 0 4px 18px rgba(93,78,138,.10);
+          border: 1px solid rgba(124,106,170,.12); }
+  .btn-primary { background: var(--lav); color:#fff; border-radius: 9999px;
+                 padding: .8rem 1.6rem; font-weight: 600; transition: transform .12s, background .2s; }
+  .btn-primary:active { transform: scale(.96); background: var(--lav-dark); }
+  .btn-soft { background: var(--lav-soft); color: var(--lav-dark); border-radius: 9999px;
+              padding: .55rem 1.1rem; font-weight: 600; transition: transform .12s; }
+  .btn-soft:active { transform: scale(.96); }
+  .navbtn { display:flex; flex-direction:column; align-items:center; gap:2px; font-size:.62rem;
+            color: var(--ink-soft); padding: .35rem 0; flex:1; transition: color .2s; }
+  .navbtn.active { color: var(--lav-dark); font-weight:700; }
+  .navbtn .ico { font-size: 1.25rem; line-height:1; }
+  .chip { border-radius:9999px; padding:.4rem .9rem; font-size:.8rem; font-weight:600;
+          border:1.5px solid rgba(124,106,170,.35); color:var(--lav-dark); background:#fff;
+          transition: all .15s; }
+  .chip.on { background: var(--lav); color:#fff; border-color: var(--lav); }
+  .mic-pulse { animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{ box-shadow:0 0 0 0 rgba(214,86,110,.45);} 50%{ box-shadow:0 0 0 18px rgba(214,86,110,0);} }
+  .task-enter { animation: slideUp .3s ease both; }
+  @keyframes slideUp { from { opacity:0; transform: translateY(12px);} to { opacity:1; transform:none;} }
+  .confetti { position: fixed; top:-10px; z-index: 60; pointer-events:none; animation: fall linear forwards; }
+  @keyframes fall { to { transform: translateY(105vh) rotate(720deg); opacity:.9; } }
+  .breath-circle { transition: transform 4s ease-in-out; }
+  .presence-dot { width:.8rem; height:.8rem; border-radius:9999px; background:#cfc7e6; transition:background .3s; display:inline-block; }
+  .presence-dot.live { background:#5abf8a; animation:pulse 2.2s ease-in-out infinite; }
+  .view { display:none; padding-bottom: 6.5rem; }
+  .view.active { display:block; animation: fadeIn .25s ease; }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+  .timeline-row { display:grid; grid-template-columns: 3.4rem 1fr; gap:.6rem; align-items:stretch; }
+  .time-label { font-size:.7rem; color:var(--ink-soft); text-align:right; padding-top:.35rem; font-variant-numeric: tabular-nums; }
+  .block-task { border-left: 4px solid var(--lav); }
+  .block-event { border-left: 4px solid #d98fb1; background: #fdf0f6; }
+  .block-break { border-left: 4px dashed #9fc9b8; background: #f2faf6; }
+  .toast { position:fixed; left:50%; bottom:6.2rem; transform:translateX(-50%); z-index:70;
+           background:var(--ink); color:#fff; padding:.65rem 1.2rem; border-radius:9999px;
+           font-size:.85rem; box-shadow:0 8px 24px rgba(0,0,0,.25); animation: toastIn .25s ease; }
+  @keyframes toastIn { from{opacity:0; transform:translate(-50%,8px);} to{opacity:1; transform:translate(-50%,0);} }
+  textarea, input, select { outline:none; }
+  input:focus, textarea:focus, select:focus { border-color: var(--lav) !important; box-shadow: 0 0 0 3px rgba(124,106,170,.15); }
+  .big-now { background: linear-gradient(135deg,#7c6aaa,#a78bca); color:#fff; }
+</style>
+</head>
+<body>
+
+<!-- ══════════ HEADER ══════════ -->
+<header class="sticky top-0 z-40 px-4 pt-4 pb-2" style="background:linear-gradient(160deg,#f6f2fb 60%,transparent)">
+  <div class="max-w-md mx-auto flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-extrabold" style="color:var(--lav-dark)">⚓ Anchor</h1>
+      <p id="header-date" class="text-xs" style="color:var(--ink-soft)"></p>
+    </div>
+    <div class="flex items-center gap-2">
+      <div id="streak-badge" class="card px-3 py-1 text-sm font-bold hidden" title="Win streak">🔥 <span id="streak-count">0</span></div>
+      <button onclick="openGrounding()" class="btn-soft text-xs" title="Feeling overwhelmed?">🌿 Ground me</button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-md mx-auto px-4">
+
+  <!-- ══════════ TODAY (HOME) ══════════ -->
+  <section id="view-today" class="view active">
+    <div class="card p-4 mb-4" style="background:linear-gradient(135deg,#efeaf8,#fdeee2)">
+      <p id="affirmation" class="text-sm leading-relaxed italic" style="color:var(--lav-dark)"></p>
+    </div>
+
+    <button onclick="switchView('dump')" class="w-full btn-primary text-lg mb-4 flex items-center justify-center gap-2">
+      <span class="text-2xl">🎙️</span> Brain dump — just talk
+    </button>
+
+    <div class="flex gap-2 mb-4">
+      <button onclick="planMyDay()" class="btn-soft flex-1">✨ Plan my day</button>
+      <button onclick="switchView('now')" class="btn-soft flex-1">🎯 Now mode</button>
+    </div>
+
+    <h2 class="font-bold mb-2 text-sm" style="color:var(--ink-soft)">TODAY'S GENTLE PLAN</h2>
+    <div id="today-plan" class="space-y-2"></div>
+    <div id="today-empty" class="card p-6 text-center text-sm hidden" style="color:var(--ink-soft)">
+      <p class="text-3xl mb-2">🌱</p>
+      <p>No plan yet. Dump what's on your mind, then tap <b>Plan my day</b>.<br>Small steps count.</p>
+    </div>
+
+    <h2 id="today-routines-head" class="font-bold mt-6 mb-2 text-sm" style="color:var(--ink-soft)">📋 TODAY'S ROUTINES</h2>
+    <div id="today-routines" class="space-y-2"></div>
+
+    <h2 class="font-bold mt-6 mb-2 text-sm" style="color:var(--ink-soft)">UP NEXT · UNSCHEDULED</h2>
+    <div id="today-backlog" class="space-y-2"></div>
+  </section>
+
+  <!-- ══════════ BRAIN DUMP ══════════ -->
+  <section id="view-dump" class="view">
+    <div class="card p-5 text-center mb-4">
+      <p class="text-sm mb-4" style="color:var(--ink-soft)">Say it messy. No organizing needed — I'll catch everything.</p>
+      <button id="mic-btn" onclick="toggleListening()"
+        class="mx-auto w-24 h-24 rounded-full text-4xl flex items-center justify-center text-white shadow-lg"
+        style="background:linear-gradient(135deg,#d6566e,#b04a7e)">🎙️</button>
+      <p id="mic-status" class="text-xs mt-3 h-4" style="color:var(--ink-soft)">Tap to start talking</p>
+      <p id="live-transcript" class="mt-2 text-sm font-medium min-h-[2.5rem]" style="color:var(--lav-dark)"></p>
+    </div>
+
+    <div class="card p-4">
+      <p class="text-xs font-bold mb-2" style="color:var(--ink-soft)">OR TYPE IT</p>
+      <div class="flex gap-2">
+        <input id="typed-dump" type="text" placeholder="One thing per line is fine…"
+          class="flex-1 border rounded-xl px-3 py-2 text-sm" style="border-color:rgba(124,106,170,.3)"
+          onkeydown="if(event.key==='Enter')addTypedDump()">
+        <button onclick="addTypedDump()" class="btn-primary text-sm px-4">Add</button>
+      </div>
+    </div>
+
+    <h2 class="font-bold mt-6 mb-2 text-sm" style="color:var(--ink-soft)">📥 INBOX — TAP ✓ TO SORT LATER, OR SORT NOW</h2>
+    <div id="inbox-list" class="space-y-2"></div>
+    <div id="inbox-empty" class="card p-6 text-center text-sm hidden" style="color:var(--ink-soft)">
+      <p class="text-3xl mb-2">🕊️</p><p>Inbox zero. Your mind is clear.</p>
+    </div>
+  </section>
+
+  <!-- ══════════ PLAN ══════════ -->
+  <section id="view-plan" class="view">
+    <div class="card p-4 mb-4">
+      <h2 class="font-bold mb-1">✨ Gentle auto-planner</h2>
+      <p class="text-xs mb-3" style="color:var(--ink-soft)">I fit your tasks around your calendar events inside your focus hours — with breathing room between everything. Never more than your daily max.</p>
+      <div class="grid grid-cols-2 gap-2 text-sm mb-3">
+        <label class="text-xs" style="color:var(--ink-soft)">Focus starts
+          <input id="set-focus-start" type="time" class="w-full border rounded-lg px-2 py-1.5 mt-1" style="border-color:rgba(124,106,170,.3)"></label>
+        <label class="text-xs" style="color:var(--ink-soft)">Focus ends
+          <input id="set-focus-end" type="time" class="w-full border rounded-lg px-2 py-1.5 mt-1" style="border-color:rgba(124,106,170,.3)"></label>
+        <label class="text-xs" style="color:var(--ink-soft)">Max tasks/day
+          <select id="set-max-tasks" class="w-full border rounded-lg px-2 py-1.5 mt-1" style="border-color:rgba(124,106,170,.3)">
+            <option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option>
+          </select></label>
+        <label class="text-xs" style="color:var(--ink-soft)">Breaks between
+          <select id="set-break" class="w-full border rounded-lg px-2 py-1.5 mt-1" style="border-color:rgba(124,106,170,.3)">
+            <option value="5">5 min</option><option value="10" selected>10 min</option><option value="15">15 min</option>
+          </select></label>
+      </div>
+      <button onclick="savePlannerSettings(); planMyDay()" class="btn-primary w-full">✨ Build today's plan</button>
+    </div>
+    <div id="plan-timeline" class="space-y-1"></div>
+  </section>
+
+  <!-- ══════════ NOW MODE ══════════ -->
+  <section id="view-now" class="view">
+    <div id="now-card" class="big-now rounded-3xl p-6 text-center shadow-xl mb-4">
+      <p class="text-xs uppercase tracking-widest opacity-80 mb-2">Just this one thing</p>
+      <p id="now-task-title" class="text-2xl font-extrabold leading-snug mb-1">—</p>
+      <p id="now-task-meta" class="text-sm opacity-80 mb-5"></p>
+      <div id="now-timer" class="text-5xl font-black mb-5" style="font-variant-numeric:tabular-nums">25:00</div>
+      <div class="flex justify-center gap-3">
+        <button id="now-start-btn" onclick="nowToggleTimer()" class="bg-white text-purple-800 font-bold rounded-full px-6 py-3">▶ Start focus</button>
+        <button onclick="nowComplete()" class="bg-green-300 text-green-900 font-bold rounded-full px-6 py-3">✓ Done</button>
+      </div>
+      <button onclick="nowSkip()" class="mt-4 text-xs underline opacity-70">Not feeling it — show me another</button>
+    </div>
+    <div class="card p-5 mb-4 text-center">
+      <p class="font-bold mb-1">🫶 Body-double session</p>
+      <p class="text-xs mb-3" style="color:var(--ink-soft)">Work alongside a calm virtual presence — alternating focus &amp; rest cycles with gentle check-ins, like a study buddy who never judges.</p>
+      <div class="flex justify-center gap-2 mb-3" id="bd-presets">
+        <button class="chip on" data-w="25" data-b="5">25 / 5</button>
+        <button class="chip" data-w="50" data-b="10">50 / 10</button>
+        <button class="chip" data-w="90" data-b="20">90 / 20</button>
+      </div>
+      <div class="flex items-center justify-center gap-2 mb-2">
+        <span id="bd-dot" class="presence-dot"></span>
+        <span id="bd-phase" class="text-xs font-bold" style="color:var(--ink-soft)">READY</span>
+      </div>
+      <div id="bd-timer" class="text-4xl font-black mb-2" style="font-variant-numeric:tabular-nums">25:00</div>
+      <p id="bd-message" class="text-sm italic mb-4 min-h-[2.5rem]" style="color:var(--lav-dark)">I'm right here with you. No judgment, just company.</p>
+      <div class="flex justify-center gap-2">
+        <button id="bd-start-btn" onclick="bdStartPause()" class="btn-primary text-sm">▶ Start together</button>
+        <button onclick="bdEnd()" class="btn-soft text-sm">End</button>
+      </div>
+    </div>
+
+    <div class="card p-4 text-center">
+      <p id="now-encouragement" class="text-sm italic" style="color:var(--lav-dark)"></p>
+      <p class="text-xs mt-3" style="color:var(--ink-soft)">Today you've finished <b id="now-wins-today">0</b> thing(s). Every single one counts. 💜</p>
+    </div>
+  </section>
+
+  <!-- ══════════ ROUTINES ══════════ -->
+  <section id="view-routines" class="view">
+    <div class="card p-4 mb-4">
+      <h2 class="font-bold mb-1">🌅 Recurring routines</h2>
+      <p class="text-xs mb-3" style="color:var(--ink-soft)">Repeating anchors for your days — meds, morning reset, wind-down. They appear in Today as a gentle checklist and reset each day. Completing one counts as a win. 💜</p>
+      <div class="flex gap-2 mb-2">
+        <input id="routine-emoji" type="text" placeholder="🌅" class="w-14 border rounded-xl px-2 py-2 text-center text-sm" style="border-color:rgba(124,106,170,.3)">
+        <input id="routine-title" type="text" placeholder="e.g. Morning reset, Meds, Wind-down" class="flex-1 border rounded-xl px-3 py-2 text-sm" style="border-color:rgba(124,106,170,.3)">
+      </div>
+      <div class="flex gap-2 mb-3 items-center">
+        <label class="text-xs" style="color:var(--ink-soft)">Reminder time (optional)</label>
+        <input id="routine-time" type="time" class="border rounded-xl px-2 py-1.5 text-sm" style="border-color:rgba(124,106,170,.3)">
+      </div>
+      <p class="text-xs font-bold mb-1" style="color:var(--ink-soft)">ON WHICH DAYS?</p>
+      <div id="routine-days" class="flex flex-wrap gap-2 mb-3"></div>
+      <button onclick="addRoutine()" class="btn-primary w-full text-sm">Add routine ✓</button>
+    </div>
+    <div id="routines-list" class="space-y-3"></div>
+  </section>
+
+  <!-- ══════════ CALENDAR / SETTINGS ══════════ -->
+  <section id="view-cal" class="view">
+    <div class="card p-4 mb-4">
+      <h2 class="font-bold mb-1">📅 Google Calendar</h2>
+      <p id="gcal-status" class="text-xs mb-3" style="color:var(--ink-soft)">Not connected</p>
+      <div class="flex gap-2">
+        <button id="gcal-connect-btn" onclick="gcalConnect()" class="btn-primary flex-1 text-sm">Connect Google Calendar</button>
+        <button id="gcal-refresh-btn" onclick="gcalFetchEvents()" class="btn-soft text-sm hidden">↻ Refresh</button>
+      </div>
+      <details class="mt-3 text-xs" style="color:var(--ink-soft)">
+        <summary class="font-bold cursor-pointer" style="color:var(--lav-dark)">One-time setup (2 min) — get a free Client ID</summary>
+        <ol class="list-decimal ml-4 mt-2 space-y-1 leading-relaxed">
+          <li>Go to <b>console.cloud.google.com</b> → create a free project.</li>
+          <li>Enable the <b>Google Calendar API</b> and the <b>Google Drive API</b> (Drive is used for cloud sync).</li>
+          <li>APIs &amp; Services → <b>OAuth consent screen</b> → External → fill name/email → add yourself as a test user.</li>
+          <li>Credentials → <b>Create OAuth Client ID</b> → type <b>Web application</b>.</li>
+          <li>Add your app's origin (where you host this file, e.g. <i>http://localhost:8080</i> or your HTTPS domain) to <b>Authorized JavaScript origins</b>.</li>
+          <li>Paste the Client ID below. It stays on your device only.</li>
+        </ol>
+      </details>
+      <div class="flex gap-2 mt-3">
+        <input id="gcal-client-id" type="text" placeholder="Paste Client ID (…apps.googleusercontent.com)"
+          class="flex-1 border rounded-xl px-3 py-2 text-xs" style="border-color:rgba(124,106,170,.3)">
+        <button onclick="saveClientId()" class="btn-soft text-xs">Save</button>
+      </div>
+    </div>
+
+    <div class="card p-4 mb-4">
+      <h2 class="font-bold mb-1">🔔 Reminders</h2>
+      <p id="notif-status" class="text-xs mb-3" style="color:var(--ink-soft)">Off</p>
+      <div class="flex gap-2">
+        <button onclick="enableNotifications()" class="btn-primary flex-1 text-sm">Turn on reminders</button>
+        <button onclick="testNotification()" class="btn-soft text-sm">Test</button>
+        <button onclick="disableNotifications()" class="btn-soft text-sm">Off</button>
+      </div>
+      <p class="text-xs mt-2" style="color:var(--ink-soft)">Honest note: without a push server, reminders fire while the app is open or running in the background (true when installed on most phones). Planned tasks and routine times both get gentle nudges.</p>
+    </div>
+
+    <div class="card p-4 mb-4">
+      <h2 class="font-bold mb-1">☁️ Cloud sync (Google Drive)</h2>
+      <p id="sync-status" class="text-xs mb-3" style="color:var(--ink-soft)">Off — data lives only on this device</p>
+      <div class="flex gap-2">
+        <button onclick="enableSync()" class="btn-primary flex-1 text-sm">Enable sync</button>
+        <button onclick="syncNow()" class="btn-soft text-sm">⇅ Sync now</button>
+      </div>
+      <p class="text-xs mt-2" style="color:var(--ink-soft)">Uses the same Google connection as your calendar (reconnect after enabling so Drive permission is granted). Your data is stored in a hidden app folder inside <i>your own</i> Google Drive — only this app can see it, and it never touches your files. On every device, the newest change wins.</p>
+    </div>
+
+    <div class="card p-4 mb-4">
+      <h2 class="font-bold mb-2">📌 Fixed commitments (manual)</h2>
+      <p class="text-xs mb-2" style="color:var(--ink-soft)">No Google? Add appointments here — the planner works around them.</p>
+      <div class="flex gap-2 mb-2">
+        <input id="manual-event-title" type="text" placeholder="e.g. Therapy, work shift" class="flex-1 border rounded-xl px-3 py-2 text-sm" style="border-color:rgba(124,106,170,.3)">
+      </div>
+      <div class="flex gap-2 mb-2">
+        <input id="manual-event-start" type="time" class="border rounded-xl px-2 py-2 text-sm flex-1" style="border-color:rgba(124,106,170,.3)">
+        <input id="manual-event-end" type="time" class="border rounded-xl px-2 py-2 text-sm flex-1" style="border-color:rgba(124,106,170,.3)">
+        <button onclick="addManualEvent()" class="btn-primary text-sm px-4">Add</button>
+      </div>
+      <div id="manual-events-list" class="space-y-1"></div>
+    </div>
+
+    <h2 class="font-bold mb-2 text-sm" style="color:var(--ink-soft)">TODAY'S EVENTS</h2>
+    <div id="events-list" class="space-y-2"></div>
+
+    <div class="card p-4 mt-6">
+      <h2 class="font-bold mb-2 text-sm" style="color:var(--ink-soft)">DATA</h2>
+      <div class="flex gap-2">
+        <button onclick="exportData()" class="btn-soft text-xs flex-1">⬇ Export backup (JSON)</button>
+        <button onclick="document.getElementById('import-file').click()" class="btn-soft text-xs flex-1">⬆ Import</button>
+        <input id="import-file" type="file" accept=".json" class="hidden" onchange="importData(event)">
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ══════════ SORT SHEET (modal) ══════════ -->
+<div id="sort-sheet" class="fixed inset-0 z-50 hidden" style="background:rgba(58,52,80,.45)" onclick="if(event.target===this)closeSort()">
+  <div class="absolute bottom-0 left-0 right-0 max-w-md mx-auto card rounded-b-none p-5" style="border-radius:1.5rem 1.5rem 0 0">
+    <p class="font-bold mb-1">Sort this thought 🌱</p>
+    <p id="sort-text" class="text-sm mb-4 italic" style="color:var(--ink-soft)"></p>
+    <p class="text-xs font-bold mb-1" style="color:var(--ink-soft)">ROUGHLY HOW LONG?</p>
+    <div class="flex flex-wrap gap-2 mb-3" id="sort-mins">
+      <button class="chip" data-v="5">5 min</button><button class="chip on" data-v="15">15 min</button>
+      <button class="chip" data-v="30">30 min</button><button class="chip" data-v="60">1 hr</button><button class="chip" data-v="120">2 hr</button>
+    </div>
+    <p class="text-xs font-bold mb-1" style="color:var(--ink-soft)">ENERGY IT NEEDS</p>
+    <div class="flex gap-2 mb-3" id="sort-energy">
+      <button class="chip" data-v="low">🌙 Low</button><button class="chip on" data-v="med">☀️ Medium</button><button class="chip" data-v="high">🔥 High</button>
+    </div>
+    <p class="text-xs font-bold mb-1" style="color:var(--ink-soft)">WHEN?</p>
+    <div class="flex gap-2 mb-4" id="sort-when">
+      <button class="chip on" data-v="today">Today</button><button class="chip" data-v="tomorrow">Tomorrow</button><button class="chip" data-v="week">This week</button>
+    </div>
+    <div class="flex gap-2">
+      <button onclick="closeSort()" class="btn-soft flex-1">Later</button>
+      <button onclick="confirmSort()" class="btn-primary flex-1">Save task ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ GROUNDING MODAL ══════════ -->
+<div id="ground-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-6" style="background:rgba(58,52,80,.6)">
+  <div class="card p-6 w-full max-w-sm text-center">
+    <p class="text-2xl mb-1">🌿</p>
+    <p class="font-bold mb-2">Grounding · 5-4-3-2-1</p>
+    <p id="ground-step" class="text-sm leading-relaxed mb-4" style="color:var(--ink-soft)"></p>
+    <div class="flex gap-2 justify-center">
+      <button id="ground-next-btn" onclick="groundNext()" class="btn-primary text-sm">Begin</button>
+      <button onclick="closeGrounding()" class="btn-soft text-sm">Close</button>
+    </div>
+    <p class="text-xs mt-3" style="color:var(--ink-soft)">You're safe. This moment will pass.</p>
+  </div>
+</div>
+
+<!-- ══════════ BOTTOM NAV ══════════ -->
+<nav class="fixed bottom-0 left-0 right-0 z-40 border-t" style="background:rgba(255,255,255,.92); backdrop-filter:blur(10px); border-color:rgba(124,106,170,.15)">
+  <div class="max-w-md mx-auto flex">
+    <button class="navbtn active" data-view="today" onclick="switchView('today')"><span class="ico">🏠</span>Today</button>
+    <button class="navbtn" data-view="dump" onclick="switchView('dump')"><span class="ico">🎙️</span>Dump</button>
+    <button class="navbtn" data-view="plan" onclick="switchView('plan')"><span class="ico">✨</span>Plan</button>
+    <button class="navbtn" data-view="routines" onclick="switchView('routines')"><span class="ico">🌅</span>Routines</button>
+    <button class="navbtn" data-view="now" onclick="switchView('now')"><span class="ico">🎯</span>Now</button>
+    <button class="navbtn" data-view="cal" onclick="switchView('cal')"><span class="ico">📅</span>Calendar</button>
+  </div>
+</nav>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="app.js"></script>
+</body>
+</html>
